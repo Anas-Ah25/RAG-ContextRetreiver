@@ -24,8 +24,8 @@ def generate_response(query: str):
     if learned_docs:
         learned_context = f"\n[Previous Verified Answer]: {learned_docs[0]['answer']}\n"
 
-    # 2. Retrieve Standard Documents
-    context_docs = db.search(query, limit=3)
+    # 2. Retrieve Standard Documents (5 chunks for better context)
+    context_docs = db.search(query, limit=5)
     context_text = "\n\n".join([doc["text"] for doc in context_docs])
     
     prompt = f"""
@@ -71,7 +71,19 @@ def generate_response(query: str):
     if len(interaction_cache) > 100:
         interaction_cache.pop(next(iter(interaction_cache)))
 
-    return {"answer": text_response, "id": response_id}
+    # Build retrieved documents list for UI display
+    retrieved_docs = []
+    for doc in context_docs:
+        retrieved_docs.append({
+            "filename": doc.get("filename", "Unknown Source"),
+            "text": doc.get("text", "")
+        })
+
+    return {
+        "answer": text_response, 
+        "id": response_id, 
+        "retrieved_docs": retrieved_docs
+    }
 
 def add_feedback(query_id: str, feedback: str):
     print(f"Feedback received for {query_id}: {feedback}")
