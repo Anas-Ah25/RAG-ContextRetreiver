@@ -7,15 +7,13 @@ class EmbeddingModel:
         self.model = SentenceTransformer(model_name, device=self.device)
         
     def encode(self, text: str):
-        # BGE prefers prompts for retrieval
-        # For symmetric retrieval (like RAG), usually no prompt is needed for documents, 
-        # but queries might benefit from "Represent this sentence for searching relevant passages: "
+        #  for query 
         return self.model.encode(text, normalize_embeddings=True).tolist()
 
     def encode_query(self, query: str):
-        # Specific prompt for BGE queries
+        # specific prompt for BGE queries
         prompt = f"Represent this sentence for searching relevant passages: {query}"
         return self.model.encode(prompt, normalize_embeddings=True).tolist()
 
-# Singleton instance
+# singlton  
 bge_model = EmbeddingModel()

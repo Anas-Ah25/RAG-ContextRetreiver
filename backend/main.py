@@ -20,8 +20,8 @@ def health():
 
 @app.post("/query")
 async def query_endpoint(query: str = Form(...)):
-    answer = generate_response(query)
-    return {"answer": answer, "id": str(uuid.uuid4())}
+    # answer is now a dict {answer: str, id: str}
+    return generate_response(query)
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
