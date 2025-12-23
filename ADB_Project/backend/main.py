@@ -93,11 +93,6 @@ def seed_mock_data():
     db.add_documents(mock_data, ids, metadatas)
     return {"status": "seeded", "count": len(mock_data)}
 
-@app.post("/clear")
-def clear_data():
-    db.clear_all()
-    return {"status": "cleared", "message": "All documents deleted"}
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

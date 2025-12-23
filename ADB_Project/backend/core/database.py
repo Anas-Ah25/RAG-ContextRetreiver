@@ -33,20 +33,6 @@ class VectorDB:
                 )
             )
 
-    def clear_all(self):
-        """Delete all documents from both collections"""
-        # Delete and recreate collections to clear all data
-        try:
-            self.client.delete_collection(COLLECTION_NAME)
-        except:
-            pass
-        try:
-            self.client.delete_collection(LEARNED_COLLECTION_NAME)
-        except:
-            pass
-        # Recreate empty collections
-        self._ensure_collection()
-
     def add_documents(self, documents: list[str], ids: list[int], metadatas: list[dict] = None):
         points = []
         for i, text in enumerate(documents):
@@ -62,27 +48,24 @@ class VectorDB:
             points=points
         )
 
-    def search(self, query: str, limit: int = 5, score_threshold: float = 0.5):
+    def search(self, query: str, limit: int = 5):
         query_vector = bge_model.encode_query(query)
         # fallback to recommended search method if 'search' is missing on this client version/mode
         try:
              results = self.client.search(
                 collection_name=COLLECTION_NAME,
                 query_vector=query_vector,
-                limit=limit,
-                score_threshold=score_threshold  # Only return relevant results
+                limit=limit
             )
         except AttributeError:
              # Try query_points (newer API)
              results = self.client.query_points(
                 collection_name=COLLECTION_NAME,
                 query=query_vector,
-                limit=limit,
-                score_threshold=score_threshold
+                limit=limit
             ).points
              
-        # Return payload with score for transparency
-        return [{"score": r.score, **r.payload} for r in results]
+        return [r.payload for r in results]
 
     def store_learned_answer(self, query: str, answer: str):
         # Embed the QUERY, but store the ANSWER

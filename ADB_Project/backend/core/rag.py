@@ -71,21 +71,13 @@ def generate_response(query: str):
     if len(interaction_cache) > 100:
         interaction_cache.pop(next(iter(interaction_cache)))
 
-    # Build retrieved documents grouped by unique filename
-    docs_by_file = {}
+    # Build retrieved documents list for UI display
+    retrieved_docs = []
     for doc in context_docs:
-        filename = doc.get("filename", "Unknown Source")
-        text = doc.get("text", "")
-        
-        if filename not in docs_by_file:
-            docs_by_file[filename] = {
-                "filename": filename,
-                "chunks": []
-            }
-        docs_by_file[filename]["chunks"].append(text)
-    
-    # Convert to list format for frontend
-    retrieved_docs = list(docs_by_file.values())
+        retrieved_docs.append({
+            "filename": doc.get("filename", "Unknown Source"),
+            "text": doc.get("text", "")
+        })
 
     return {
         "answer": text_response, 
