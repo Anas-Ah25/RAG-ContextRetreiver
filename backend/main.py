@@ -93,10 +93,16 @@ def seed_mock_data():
     db.add_documents(mock_data, ids, metadatas)
     return {"status": "seeded", "count": len(mock_data)}
 
+
 @app.post("/clear")
 def clear_data():
     db.clear_all()
-    return {"status": "cleared", "message": "All documents deleted"}
+    return {"status": "cleared", "message": "All uploaded documents deleted (learned answers preserved)"}
+
+@app.post("/clear-learned")
+def clear_learned_data():
+    db.clear_learned()
+    return {"status": "cleared", "message": "All learned Q&A pairs deleted"}
 
 if __name__ == "__main__":
     import uvicorn

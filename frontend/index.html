@@ -9,6 +9,8 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Markdown rendering library -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -63,6 +65,96 @@
         .animate-fade-in {
             animation: fadeIn 0.4s ease-out forwards;
         }
+
+        /* Markdown Content Styles */
+        .markdown-content {
+            line-height: 1.7;
+        }
+
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3 {
+            font-weight: 600;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            color: #1e293b;
+        }
+
+        .markdown-content h1 {
+            font-size: 1.5em;
+        }
+
+        .markdown-content h2 {
+            font-size: 1.3em;
+        }
+
+        .markdown-content h3 {
+            font-size: 1.1em;
+        }
+
+        .markdown-content p {
+            margin-bottom: 1em;
+        }
+
+        .markdown-content strong {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .markdown-content em {
+            font-style: italic;
+        }
+
+        .markdown-content code {
+            background: #f1f5f9;
+            padding: 0.15em 0.4em;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #0d9488;
+            border: 1px solid #e2e8f0;
+        }
+
+        .markdown-content pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1em;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+
+        .markdown-content pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            margin-left: 1.5em;
+            margin-bottom: 1em;
+        }
+
+        .markdown-content li {
+            margin-bottom: 0.25em;
+        }
+
+        .markdown-content blockquote {
+            border-left: 3px solid #14b8a6;
+            padding-left: 1em;
+            margin: 1em 0;
+            color: #64748b;
+        }
+
+        .markdown-content a {
+            color: #14b8a6;
+            text-decoration: underline;
+        }
+
+        .markdown-content a:hover {
+            color: #0d9488;
+        }
     </style>
 </head>
 
@@ -72,6 +164,14 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         const API_BASE = "http://localhost:8000";
+
+        // Configure marked for better markdown rendering
+        marked.setOptions({
+            breaks: true,        // Convert \n to <br>
+            gfm: true,          // GitHub Flavored Markdown
+            headerIds: false,   // Don't add IDs to headers
+            mangle: false       // Don't escape email addresses
+        });
 
         // Component for displaying a single retrieved document with expand/collapse
         // Now groups all chunks from the same file together
@@ -144,6 +244,7 @@
             const [loading, setLoading] = useState(false);
             const [uploading, setUploading] = useState(false);
             const messagesEndRef = useRef(null);
+            const fileInputRef = useRef(null);
 
             const scrollToBottom = () => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -192,36 +293,56 @@
 
             const handleUpload = async (e) => {
                 const file = e.target.files[0];
-                if (!file) return;
+                console.log("Upload triggered, file:", file);
+                if (!file) {
+                    console.log("No file selected");
+                    return;
+                }
 
                 setUploading(true);
                 const formData = new FormData();
                 formData.append("file", file);
 
                 try {
+                    console.log("Sending upload request to:", `${API_BASE}/upload`);
                     const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: formData });
+                    console.log("Response status:", res.status);
                     const data = await res.json();
-                    setMessages(prev => [...prev, { role: 'system', content: `✅ Uploaded ${data.filename}` }]);
+                    console.log("Upload response:", data);
+                    setMessages(prev => [...prev, { role: 'system', content: `Uploaded ${data.filename} (${data.chunks} chunks)` }]);
+                    setHasSearched(true);
                 } catch (error) {
-                    alert("Upload failed");
+                    console.error("Upload error:", error);
+                    setMessages(prev => [...prev, { role: 'system', content: `Upload failed: ${error.message}` }]);
                 } finally {
                     setUploading(false);
+                    if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                    }
                 }
             };
 
             const seedData = async () => {
                 try {
                     await fetch(`${API_BASE}/seed`, { method: 'POST' });
-                    setMessages(prev => [...prev, { role: 'system', content: "🌱 Data seeded." }]);
+                    setMessages(prev => [...prev, { role: 'system', content: "Data seeded." }]);
                 } catch (e) { console.error(e); }
             };
 
             const clearData = async () => {
-                if (!confirm("Are you sure you want to delete all indexed documents?")) return;
+                if (!confirm("Are you sure you want to delete all uploaded documents?")) return;
                 try {
                     await fetch(`${API_BASE}/clear`, { method: 'POST' });
-                    setMessages([{ role: 'system', content: "🗑️ All data cleared." }]);
+                    setMessages([{ role: 'system', content: "All uploaded documents cleared." }]);
                     setHasSearched(false);
+                } catch (e) { console.error(e); }
+            };
+
+            const clearLearnedData = async () => {
+                if (!confirm("Clear all learned answers from positive feedback?")) return;
+                try {
+                    await fetch(`${API_BASE}/clear-learned`, { method: 'POST' });
+                    setMessages(prev => [...prev, { role: 'system', content: "All learned Q&A pairs cleared." }]);
                 } catch (e) { console.error(e); }
             };
 
@@ -258,14 +379,17 @@
                     {/* Top Right Nav */}
                     <div className="fixed top-6 right-6 flex gap-3 z-50">
                         <button onClick={clearData} className="px-4 py-2 text-sm text-red-600 bg-white border border-red-200 rounded-full hover:bg-red-50 transition-colors shadow-sm">
-                            Clear Data
+                            Clear Docs
+                        </button>
+                        <button onClick={clearLearnedData} className="px-4 py-2 text-sm text-orange-600 bg-white border border-orange-200 rounded-full hover:bg-orange-50 transition-colors shadow-sm">
+                            Clear Learned
                         </button>
                         <button onClick={seedData} className="px-4 py-2 text-sm text-slate-600 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors shadow-sm">
                             Seed Data
                         </button>
                         <label className="px-4 py-2 text-sm text-white bg-brand-600 rounded-full cursor-pointer hover:bg-brand-500 transition-colors shadow-sm flex items-center gap-2">
                             {uploading ? "..." : "Upload PDF"}
-                            <input type="file" className="hidden" onChange={handleUpload} accept=".pdf,.txt" />
+                            <input ref={fileInputRef} type="file" className="hidden" onChange={handleUpload} accept=".pdf,.txt" />
                         </label>
                     </div>
 
@@ -309,7 +433,7 @@
                                         <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-sm mt-1 ${msg.role === 'user' ? 'bg-slate-200' :
                                             msg.role === 'system' ? 'bg-indigo-100' : 'bg-brand-100'
                                             }`}>
-                                            {msg.role === 'user' ? '👤' : msg.role === 'system' ? '⚙️' : '🤖'}
+                                            {msg.role === 'user' ? 'U' : msg.role === 'system' ? 'S' : 'AI'}
                                         </div>
 
                                         {/* Content - Full width for readability, left aligned */}
@@ -317,10 +441,21 @@
                                             <div className="font-medium text-slate-900 text-sm mb-1">
                                                 {msg.role === 'user' ? 'You' : msg.role === 'system' ? 'System' : 'ContextWeaver'}
                                             </div>
-                                            <div className={`text-slate-700 leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'text-lg font-medium text-slate-800' : ''
-                                                }`}>
-                                                {msg.content}
-                                            </div>
+                                            {msg.role === 'assistant' ? (
+                                                <div
+                                                    className="markdown-content text-slate-700 leading-relaxed"
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: marked.parse(msg.content, {
+                                                            breaks: true,
+                                                            gfm: true
+                                                        })
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className={`text-slate-700 leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'text-lg font-medium text-slate-800' : ''}`}>
+                                                    {msg.content}
+                                                </div>
+                                            )}
 
                                             {/* Retrieved Documents & Actions */}
                                             {msg.role === 'assistant' && (

@@ -34,17 +34,13 @@ class VectorDB:
             )
 
     def clear_all(self):
-        """Delete all documents from both collections"""
-        # Delete and recreate collections to clear all data
+        """Delete all documents from the main collection ONLY (preserves learned QA)"""
+        # Only clear the main document collection, keep learned answers
         try:
             self.client.delete_collection(COLLECTION_NAME)
         except:
             pass
-        try:
-            self.client.delete_collection(LEARNED_COLLECTION_NAME)
-        except:
-            pass
-        # Recreate empty collections
+        # Recreate the main collection (learned collection stays intact)
         self._ensure_collection()
 
     def add_documents(self, documents: list[str], ids: list[int], metadatas: list[dict] = None):
@@ -99,7 +95,7 @@ class VectorDB:
             )]
         )
 
-    def search_learned(self, query: str, score_threshold: float = 0.85):
+    def search_learned(self, query: str, score_threshold: float = 0.75):
         query_vector = bge_model.encode_query(query)
         try:
              results = self.client.search(
@@ -115,7 +111,22 @@ class VectorDB:
                 limit=1,
                 score_threshold=score_threshold
             ).points
+        
+        # Debug logging
+        if results:
+            print(f"✅ Found learned answer for '{query}' with score: {results[0].score}")
+        else:
+            print(f"❌ No learned answer found for '{query}' (threshold: {score_threshold})")
             
         return [r.payload for r in results]
+
+    def clear_learned(self):
+        """Delete all learned Q&A pairs"""
+        try:
+            self.client.delete_collection(LEARNED_COLLECTION_NAME)
+        except:
+            pass
+        # Recreate the learned collection
+        self._ensure_collection()
 
 db = VectorDB()

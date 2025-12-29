@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments (critical - these are huge!)
+**/.venv/
+**/venv/
+**/.venv
+**/venv
+.venv/
+venv/
+ENV/
+env/
+backend/.venv/
+backend/venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+frontend/
+embedding_comparison.ipynb
+ADB_Project/
+ADB_Project.zip
+README.md
+
+# Environment files are now included in the image
+
+# Data directories (should be mounted as volumes)
+backend/data/
+data/
+qdrant_storage/
+**/qdrant_storage/
+
+# Model caches (these can be huge!)
+**/.cache/
+.cache/
+**/__pycache__/
+
+# Logs
+*.log
